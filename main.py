@@ -3,11 +3,26 @@ import os
 import time
 import googleapiclient.discovery
 from six.moves import input
+from googleapiclient import discovery
+from oauth2client.client import GoogleCredentials
+from oauth2client import GOOGLE_TOKEN_URI
+
+credentials = GoogleCredentials.get_application_default()
+compute = discovery.build('compute', 'v1', credentials=credentials)
+PROJECT = 'devops-172906'
+ZONE = 'us-central1-f'
+request = compute.instances().list(project=PROJECT, zone=ZONE)
+response = request.execute()
+
+print(response)
+
+def list_instances(compute, project, zone):
+    result = compute.instances().list(project=project, zone=zone).execute()
+    return result['items']
 
 def create_instance(compute, project, zone, name):
-    # Get the latest Debian Jessie image.
     image_response = compute.images().getFromFamily(
-        project='debian-cloud', family='debian-8').execute()
+        project='centos-cloud', family='centos-7').execute()
     source_disk_image = image_response['selfLink']
 
     machine_type = "zones/%s/machineTypes/n1-standard-1" % zone
@@ -77,6 +92,7 @@ def wait_for_operation(compute, project, zone, operation):
 
         time.sleep(2)
 
+
 def main(project, zone, instance_name, wait=True):
     compute = googleapiclient.discovery.build('compute', 'v1')
 
@@ -96,9 +112,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('project_id', help='Your Google Cloud project ID.')
     parser.add_argument(
-        'bucket_name', help='Your Google Cloud Storage bucket name.')
+    	'project_id', help='Your Google Cloud project ID.')
     parser.add_argument(
         '--zone',
         default='us-central1-f',
@@ -108,4 +123,4 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    main(args.project_id, args.bucket_name, args.zone, args.name)
+    main(args.project_id, args.zone, args.name)
