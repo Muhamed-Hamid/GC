@@ -15,7 +15,7 @@ request = compute.instances().list(project=PROJECT, zone=ZONE)
 response = request.execute()
 
 #To view all of the query
-print(response)
+#print(response)
 
 def list_instances(compute, project, zone):
     result = compute.instances().list(project=project, zone=zone).execute()
