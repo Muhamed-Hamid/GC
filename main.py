@@ -1,11 +1,11 @@
 import argparse
 import os
 import time
-import googleapiclient.discovery
+import json
 from six.moves import input
+from pprint import pprint
 from googleapiclient import discovery
 from oauth2client.client import GoogleCredentials
-from oauth2client import GOOGLE_TOKEN_URI
 
 credentials = GoogleCredentials.get_application_default()
 compute = discovery.build('compute', 'v1', credentials=credentials)
@@ -14,6 +14,7 @@ ZONE = 'us-central1-f'
 request = compute.instances().list(project=PROJECT, zone=ZONE)
 response = request.execute()
 
+#To view all of the query
 print(response)
 
 def list_instances(compute, project, zone):
@@ -30,7 +31,7 @@ def create_instance(compute, project, zone, name):
         os.path.join(
             os.path.dirname(__file__), 'startup.sh'), 'r').read()
     image_url = "http://storage.googleapis.com/gce-demo-input/photo.jpg"
-    image_caption = "Ready for dessert?"
+    image_caption = "Run first success"
     config = {
         'name': name,
         'machineType': machine_type,
@@ -77,7 +78,7 @@ def create_instance(compute, project, zone, name):
         body=config).execute()
 
 def wait_for_operation(compute, project, zone, operation):
-    print('Waiting for operation to finish...')
+    print('Waiting 10 seconds for operation to finish...')
     while True:
         result = compute.zoneOperations().get(
             project=project,
@@ -92,21 +93,42 @@ def wait_for_operation(compute, project, zone, operation):
 
         time.sleep(2)
 
+def healthcheck():
+	body ={
+	"kind": "compute#httpHealthCheck",
+	"name": "crealy",
+	"host": "",
+	"description": "crealy",
+	"port": 80,
+	} 
+	insert = compute.httpHealthChecks().insert(project=PROJECT, body=body)
+	execute = insert.execute()
 
+	print('Created HealthCheck ... ')
+
+	run = compute.httpHealthChecks().list(project=PROJECT)
+	while run is not None:
+		result = run.execute() 
+
+		for health_check in result['items']:
+			pprint(health_check)
+			print('Status: 200')
+		break
+	
 def main(project, zone, instance_name, wait=True):
-    compute = googleapiclient.discovery.build('compute', 'v1')
-
-    print('Creating instance.')
+    print('Creating instance ....')
 
     operation = create_instance(compute, project, zone, instance_name)
     wait_for_operation(compute, project, zone, operation['name'])
 
     instances = list_instances(compute, project, zone)
 
+
     print('Instances in project %s and zone %s:' % (project, zone))
     for instance in instances:
         print(' - ' + instance['name'])
 
+    healthcheck()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
